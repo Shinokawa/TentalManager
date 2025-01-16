@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>逾期缴费通知</title>
+</head>
+<body>
+    <p>尊敬的{{ tenant.first_name }} {{ tenant.last_name }}，</p>
+    <p>您好！您的以下费用已经逾期未缴：</p>
+    <ul>
+        <li>费用类别：{{ fee.get_category_display }}</li>
+        <li>金额：{{ fee.amount }}</li>
+        <li>原定缴费日期：{{ fee.term }}</li>
+    </ul>
+    <p>请您尽快完成缴费，以免影响您的租赁状态。</p>
+    <p>此致，</p>
+    <p>租赁管理团队</p>
+</body>
+</html>

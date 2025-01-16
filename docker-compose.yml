@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    command: gunicorn rental_management.wsgi:application --bind 0.0.0.0:8000
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+      - redis
+
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: rental_db
+      POSTGRES_USER: rental_user
+      POSTGRES_PASSWORD: rental_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+
+  redis:
+    image: redis:6.2
+    ports:
+      - "6379:6379"
+
+  celery:
+    build: .
+    command: celery -A rental_management worker -l info
+    volumes:
+      - .:/app
+    depends_on:
+      - db
+      - redis
+
+  celery-beat:
+    build: .
+    command: celery -A rental_management beat -l info
+    volumes:
+      - .:/app
+    depends_on:
+      - db
+      - redis
+
+volumes:
+  postgres_data:

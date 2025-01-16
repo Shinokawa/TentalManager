@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>缴费通知</title>
+</head>
+<body>
+    <p>尊敬的{{ tenant.first_name }} {{ tenant.last_name }}，</p>
+    <p>您好！这是您的缴费通知：</p>
+    <ul>
+        <li>费用类别：{{ fee.get_category_display }}</li>
+        <li>金额：{{ fee.amount }}</li>
+        <li>缴费截止日期：{{ fee.term }}</li>
+    </ul>
+    <p>请您在规定时间内完成缴费，谢谢合作！</p>
+    <p>此致，</p>
+    <p>租赁管理团队</p>
+</body>
+</html>
