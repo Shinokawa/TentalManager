@@ -234,86 +234,86 @@ class Payment(models.Model):
 使用 Django REST Framework (DRF) 提供了 RESTful API 接口，供前端进行数据交互。以下是主要的 API 端点及其说明。
 
 ### 4.1 认证相关
-	•	登录：/api-auth/login/
-	•	登出：/api-auth/logout/
+- 登录：/api-auth/login/
+- 登出：/api-auth/logout/
 
 说明：使用 DRF 提供的浏览器登录界面进行认证。建议在前端使用 Token 或 JWT 进行认证，以实现无状态的 API 调用。
 
 ### 4.2 租户（Tenant）
-	•	列表与创建：GET /api/tenants/、POST /api/tenants/
-	•	详情、更新与删除：GET /api/tenants/{id}/、PUT /api/tenants/{id}/、PATCH /api/tenants/{id}/、DELETE /api/tenants/{id}/
+- 列表与创建：GET /api/tenants/、POST /api/tenants/
+- 详情、更新与删除：GET /api/tenants/{id}/、PUT /api/tenants/{id}/、PATCH /api/tenants/{id}/、DELETE /api/tenants/{id}/
 
 字段：
-	•	id：租户ID
-	•	first_name：名
-	•	last_name：姓
-	•	email：邮箱
-	•	phone_number：电话号码
+- id：租户ID
+- first_name：名
+- last_name：姓
+- email：邮箱
+- phone_number：电话号码
 
 ### 4.3 房产（Property）
-	•	列表与创建：GET /api/properties/、POST /api/properties/
-	•	详情、更新与删除：GET /api/properties/{id}/、PUT /api/properties/{id}/、PATCH /api/properties/{id}/、DELETE /api/properties/{id}/
+- 列表与创建：GET /api/properties/、POST /api/properties/
+- 详情、更新与删除：GET /api/properties/{id}/、PUT /api/properties/{id}/、PATCH /api/properties/{id}/、DELETE /api/properties/{id}/
 
 字段：
-	•	id：房产ID
-	•	house_number：房号
-	•	area：面积
-	•	address：地址
-	•	rental_status：租赁状态
-	•	current_value：当前价值
-	•	maintenance_status：维护状态
+- id：房产ID
+- house_number：房号
+- area：面积
+- address：地址
+- rental_status：租赁状态
+- current_value：当前价值
+- maintenance_status：维护状态
 
 ### 4.4 合同（Contract）
-	•	列表与创建：GET /api/contracts/、POST /api/contracts/
-	•	详情、更新与删除：GET /api/contracts/{id}/、PUT /api/contracts/{id}/、PATCH /api/contracts/{id}/、DELETE /api/contracts/{id}/
+- 列表与创建：GET /api/contracts/、POST /api/contracts/
+- 详情、更新与删除：GET /api/contracts/{id}/、PUT /api/contracts/{id}/、PATCH /api/contracts/{id}/、DELETE /api/contracts/{id}/
 
 字段：
-	•	id：合同ID
-	•	tenant：关联的租户（租户ID）
-	•	property：关联的房产（房产ID）
-	•	start_date：开始日期
-	•	end_date：结束日期
-	•	monthly_rent：月租金
-	•	yearly_rent：年租金
-	•	total_rent：总租金
-	•	rental_area：租赁面积
-	•	rental_unit_price：租赁单价
-	•	rent_collection_time：租金收取时间
-	•	status：合同状态
-	•	current_receivable：当前应收金额
-	•	current_outstanding：当前未结金额
-	•	total_overdue：累计逾期金额
+- id：合同ID
+- tenant：关联的租户（租户ID）
+- property：关联的房产（房产ID）
+- start_date：开始日期
+- end_date：结束日期
+- monthly_rent：月租金
+- yearly_rent：年租金
+- total_rent：总租金
+- rental_area：租赁面积
+- rental_unit_price：租赁单价
+- rent_collection_time：租金收取时间
+- status：合同状态
+- current_receivable：当前应收金额
+- current_outstanding：当前未结金额
+- total_overdue：累计逾期金额
 
 ### 4.5 费用（Fee）
-	•	列表与创建：GET /api/fees/、POST /api/fees/
-	•	详情、更新与删除：GET /api/fees/{id}/、PUT /api/fees/{id}/、PATCH /api/fees/{id}/、DELETE /api/fees/{id}/
+- 列表与创建：GET /api/fees/、POST /api/fees/
+- 详情、更新与删除：GET /api/fees/{id}/、PUT /api/fees/{id}/、PATCH /api/fees/{id}/、DELETE /api/fees/{id}/
 
 字段：
-	•	id：费用ID
-	•	contract：关联的合同（合同ID）
-	•	category：费用类别
-	•	amount：费用金额
-	•	term：费用所属期
-	•	is_collected：是否已收取
-	•	overdue_status：是否逾期
-	•	payment_method：支付方式
-	•	receipt：收据文件
-	•	bank_slip：银行凭证文件
+- id：费用ID
+- contract：关联的合同（合同ID）
+- category：费用类别
+- amount：费用金额
+- term：费用所属期
+- is_collected：是否已收取
+- overdue_status：是否逾期
+- payment_method：支付方式
+- receipt：收据文件
+- bank_slip：银行凭证文件
 
 ### 4.6 支付记录（Payment）
-	•	列表与创建：GET /api/payments/、POST /api/payments/
-	•	详情、更新与删除：GET /api/payments/{id}/、PUT /api/payments/{id}/、PATCH /api/payments/{id}/、DELETE /api/payments/{id}/
+- 列表与创建：GET /api/payments/、POST /api/payments/
+- 详情、更新与删除：GET /api/payments/{id}/、PUT /api/payments/{id}/、PATCH /api/payments/{id}/、DELETE /api/payments/{id}/
 
 字段：
-	•	id：支付ID
-	•	fee：关联的费用（费用ID）
-	•	payment_date：支付日期
-	•	amount：支付金额
-	•	payment_method：支付方式
-	•	receipt：支付收据文件
+- id：支付ID
+- fee：关联的费用（费用ID）
+- payment_date：支付日期
+- amount：支付金额
+- payment_method：支付方式
+- receipt：支付收据文件
 
 ### 4.7 数据分析（Data Analysis）
-	•	端点：GET /api/data-analysis/
+- 端点：GET /api/data-analysis/
 
 功能：提供财务和房产的关键指标数据。
 
