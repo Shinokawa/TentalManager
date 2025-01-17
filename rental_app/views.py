@@ -50,10 +50,21 @@ class PaymentViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         payment = serializer.save()
         fee = payment.fee
+        
+        # 更新费用状态
         fee.is_collected = True
         fee.payment_method = payment.payment_method
         fee.receipt = payment.receipt
+        
+        # 更新合同相关金额
+        contract = fee.contract
+        contract.current_receivable = contract.fees.filter(is_collected=False).aggregate(total=Sum('amount'))['total'] or 0
+        contract.current_outstanding = contract.fees.filter(is_collected=False, overdue_status='overdue').aggregate(total=Sum('amount'))['total'] or 0
+        contract.total_overdue = contract.fees.filter(overdue_status='overdue').aggregate(total=Sum('amount'))['total'] or 0
+        
+        # 保存更改
         fee.save()
+        contract.save()
 
 @api_view(['GET'])
 def data_analysis(request):

@@ -1,6 +1,7 @@
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
-from .models import Contract, Fee
+from .models import Contract, Fee, Payment
+from django.db.models import Sum
 
 @receiver(post_save, sender=Contract)
 def create_fees(sender, instance, created, **kwargs):
@@ -30,3 +31,27 @@ def create_fees(sender, instance, created, **kwargs):
             is_collected=False
         )
         # 根据需求生成其他费用
+
+@receiver(post_save, sender=Payment)
+def update_fee_status(sender, instance, created, **kwargs):
+    if created:
+        fee = instance.fee
+        
+        # 检查该费用的所有支付总额是否达到或超过费用金额
+        total_paid = Payment.objects.filter(fee=fee).aggregate(total=Sum('amount'))['total'] or 0
+        
+        if total_paid >= fee.amount:
+            fee.is_collected = True
+            fee.payment_method = instance.payment_method
+            fee.receipt = instance.receipt
+            fee.save()
+
+@receiver(post_delete, sender=Payment)
+def revert_fee_status(sender, instance, **kwargs):
+    fee = instance.fee
+    # 重新计算总支付金额
+    total_paid = Payment.objects.filter(fee=fee).exclude(id=instance.id).aggregate(total=Sum('amount'))['total'] or 0
+    
+    if total_paid < fee.amount:
+        fee.is_collected = False
+        fee.save()

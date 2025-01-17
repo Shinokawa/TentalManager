@@ -1,5 +1,6 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.db.models import Sum
 
 class Tenant(models.Model):
     email = models.EmailField(unique=True)
@@ -86,6 +87,19 @@ class Fee(models.Model):
 
     def __str__(self):
         return f"{self.category} - {self.amount} - {self.contract}"
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        # 更新合同状态
+        self.update_contract_status()
+
+    def update_contract_status(self):
+        contract = self.contract
+        # 更新合同相关金额
+        contract.current_receivable = contract.fees.filter(is_collected=False).aggregate(total=Sum('amount'))['total'] or 0
+        contract.current_outstanding = contract.fees.filter(is_collected=False, overdue_status='overdue').aggregate(total=Sum('amount'))['total'] or 0
+        contract.total_overdue = contract.fees.filter(overdue_status='overdue').aggregate(total=Sum('amount'))['total'] or 0
+        contract.save()
 
 class Payment(models.Model):
     PAYMENT_METHOD_CHOICES = [
