@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>收据</title>
+    <style>
+        body { font-family: SimSun, serif; }
+        .receipt { margin: 20px; padding: 20px; border: 1px solid #000; }
+        .header { text-align: center; font-size: 24px; margin-bottom: 20px; }
+        .content { margin: 20px 0; }
+        .footer { margin-top: 40px; }
+    </style>
+</head>
+<body>
+    <div class="receipt">
+        <div class="header">收 据</div>
+        <div class="content">
+            <p>收据编号：{{ payment.id }}</p>
+            <p>租户：{{ tenant.first_name }} {{ tenant.last_name }}</p>
+            <p>房产：{{ contract.properties.all|join:", " }}</p>
+            <p>付款项目：{{ payment.fee.get_category_display }}</p>
+            <p>付款金额：¥{{ payment.amount }}</p>
+            <p>付款方式：{{ payment.get_payment_method_display }}</p>
+            <p>付款日期：{{ payment.payment_date|date:"Y年m月d日" }}</p>
+        </div>
+        <div class="footer">
+            <p>收款人签字：________________</p>
+            <p>日期：________________</p>
+        </div>
+    </div>
+</body>
+</html>

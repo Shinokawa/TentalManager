@@ -1,4 +1,4 @@
-from django.db.models.signals import post_save, post_delete
+from django.db.models.signals import post_save, post_delete, pre_delete
 from django.dispatch import receiver
 from .models import Contract, Fee, Payment
 from django.db.models import Sum
@@ -55,3 +55,9 @@ def revert_fee_status(sender, instance, **kwargs):
     if total_paid < fee.amount:
         fee.is_collected = False
         fee.save()
+
+@receiver(pre_delete, sender=Contract)
+def update_property_status(sender, instance, **kwargs):
+    # 合同删除时更新房产状态
+    for property in instance.properties.all():
+        property.update_rental_status('available')
