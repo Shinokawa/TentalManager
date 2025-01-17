@@ -1,6 +1,7 @@
 # rental_app/serializers.py
 
 from rest_framework import serializers
+from rest_framework.reverse import reverse
 from .models import Tenant, Property, Contract, Fee, Payment
 
 class TenantSerializer(serializers.ModelSerializer):
@@ -74,7 +75,21 @@ class PaymentSerializer(serializers.ModelSerializer):
     fee_id = serializers.PrimaryKeyRelatedField(
         queryset=Fee.objects.all(), source='fee', write_only=True
     )
+    receipt_url = serializers.SerializerMethodField()
+    print_receipt_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Payment
-        fields = ['id', 'fee', 'fee_id', 'payment_date', 'amount', 'payment_method', 'receipt']
+        fields = ['id', 'fee', 'fee_id', 'payment_date', 'amount', 
+                 'payment_method', 'receipt', 'receipt_url', 'print_receipt_url']
+
+    def get_receipt_url(self, obj):
+        if obj.receipt:
+            return obj.receipt.url
+        return None
+
+    def get_print_receipt_url(self, obj):
+        request = self.context.get('request')
+        if request is None:
+            return None
+        return reverse('payment-print-receipt', args=[obj.pk], request=request)

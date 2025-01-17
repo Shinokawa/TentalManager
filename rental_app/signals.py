@@ -14,6 +14,7 @@ def create_fees(sender, instance, created, **kwargs):
             term='每月',
             is_collected=False
         )
+        '''
         # 生成保证金（一次性）
         Fee.objects.create(
             contract=instance,
@@ -22,6 +23,7 @@ def create_fees(sender, instance, created, **kwargs):
             term='一次性',
             is_collected=False
         )
+        
         # 生成物业管理费（假设每月一次）
         Fee.objects.create(
             contract=instance,
@@ -30,6 +32,7 @@ def create_fees(sender, instance, created, **kwargs):
             term='每月',
             is_collected=False
         )
+        '''
         # 根据需求生成其他费用
 
 @receiver(post_save, sender=Payment)

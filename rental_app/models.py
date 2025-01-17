@@ -57,14 +57,31 @@ class Contract(models.Model):
     current_outstanding = models.DecimalField(max_digits=12, decimal_places=2, default=0, editable=False)
     total_overdue = models.DecimalField(max_digits=12, decimal_places=2, default=0, editable=False)
     contract_file = models.FileField(upload_to='contracts/', blank=True, null=True, verbose_name='合同文件')
-    deposit_amount = models.DecimalField(max_digits=12, decimal_places=2, validators=[MinValueValidator(Decimal('0.00'))], verbose_name='保证金')
-    management_fee = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(Decimal('0.00'))], verbose_name='物业管理费')
+    deposit_amount = models.DecimalField(
+        max_digits=12, 
+        decimal_places=2, 
+        validators=[MinValueValidator(Decimal('0.00'))], 
+        verbose_name='保证金',
+        default=Decimal('0.00')  # 添加默认值
+    )
+    management_fee = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2, 
+        validators=[MinValueValidator(Decimal('0.00'))], 
+        verbose_name='物业管理费',
+        default=Decimal('0.00')  # 添加默认值
+    )
     business_type = models.CharField(max_length=100, blank=True, null=True, verbose_name='经营业态')
     rental_purpose = models.TextField(blank=True, null=True, verbose_name='租赁用途')
     decoration_period = models.IntegerField(default=0, verbose_name='装修期(天)')
     rent_free_period = models.IntegerField(default=0, verbose_name='免租期(天)')
     utilities_payment = models.TextField(blank=True, null=True, verbose_name='水电费支付方式')
-    promotion_fee = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name='推广费')
+    promotion_fee = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2, 
+        default=Decimal('0.00'),  # 已有默认值
+        verbose_name='推广费'
+    )
 
     def __str__(self):
         return f"Contract {self.id} - Tenant: {self.tenant.email}"

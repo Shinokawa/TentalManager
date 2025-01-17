@@ -4,6 +4,9 @@ from rest_framework import viewsets, permissions
 from rest_framework.decorators import action, api_view
 from rest_framework.response import Response
 from django.db.models import Sum
+from django.core.files import File  # 添加这行导入
+from django.http import FileResponse
+import os
 from .models import Tenant, Property, Contract, Fee, Payment
 from .serializers import (
     TenantSerializer, PropertySerializer,
@@ -47,6 +50,22 @@ class PaymentViewSet(viewsets.ModelViewSet):
         serializer = FeeSerializer(payables, many=True)
         return Response(serializer.data)
 
+    @action(detail=True, methods=['get'])
+    def print_receipt(self, request, pk=None):
+        payment = self.get_object()
+        pdf_path = payment.generate_receipt()
+        
+        try:
+            response = FileResponse(
+                open(pdf_path, 'rb'),
+                content_type='application/pdf'
+            )
+            response['Content-Disposition'] = f'attachment; filename="receipt_{payment.id}.pdf"'
+            return response
+        finally:
+            # 清理临时文件
+            os.unlink(pdf_path)
+
     def perform_create(self, serializer):
         payment = serializer.save()
         fee = payment.fee
@@ -65,6 +84,16 @@ class PaymentViewSet(viewsets.ModelViewSet):
         # 保存更改
         fee.save()
         contract.save()
+        
+        # 自动生成并保存收据
+        pdf_path = payment.generate_receipt()
+        with open(pdf_path, 'rb') as pdf:
+            payment.receipt.save(
+                f'receipt_{payment.id}.pdf',
+                File(pdf),
+                save=True
+            )
+        os.unlink(pdf_path)  # 清理临时文件
 
 @api_view(['GET'])
 def data_analysis(request):
