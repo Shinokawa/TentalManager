@@ -36,7 +36,7 @@ class Contract(models.Model):
     ]
 
     tenant = models.ForeignKey(Tenant, related_name='contracts', on_delete=models.CASCADE)
-    property = models.ForeignKey(Property, related_name='contracts', on_delete=models.CASCADE)
+    properties = models.ManyToManyField(Property, related_name='contracts')
     start_date = models.DateField()
     end_date = models.DateField()
     monthly_rent = models.DecimalField(max_digits=10, decimal_places=2)
@@ -51,7 +51,7 @@ class Contract(models.Model):
     total_overdue = models.DecimalField(max_digits=12, decimal_places=2, default=0)
 
     def __str__(self):
-        return f"Contract {self.id} - {self.property.house_number}"
+        return f"Contract {self.id} - Tenant: {self.tenant.email}"
 
 class Fee(models.Model):
     CATEGORY_CHOICES = [

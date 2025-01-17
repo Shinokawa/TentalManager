@@ -115,7 +115,7 @@ class Contract(models.Model):
     ]
 
     tenant = models.ForeignKey(Tenant, related_name='contracts', on_delete=models.CASCADE)
-    property = models.ForeignKey(Property, related_name='contracts', on_delete=models.CASCADE)
+    properties = models.ManyToManyField(Property, related_name='contracts', on_delete=models.CASCADE)
     start_date = models.DateField()
     end_date = models.DateField()
     monthly_rent = models.DecimalField(max_digits=10, decimal_places=2)
@@ -283,7 +283,26 @@ class Payment(models.Model):
 - current_receivable：当前应收金额
 - current_outstanding：当前未结金额
 - total_overdue：累计逾期金额
-
+创建合同事例
+~~~
+POST /api/contracts/
+{
+    "tenant_id": 1,
+    "property_ids": [1, 2, 3],
+    "start_date": "2025-01-01",
+    "end_date": "2025-12-31",
+    "monthly_rent": "2000.00",
+    "yearly_rent": "24000.00",
+    "total_rent": "24000.00",
+    "rental_area": "120.50",
+    "rental_unit_price": "2000.00",
+    "rent_collection_time": "2025-01-01",
+    "status": "active",
+    "current_receivable": "2000.00",
+    "current_outstanding": "0.00",
+    "total_overdue": "0.00"
+}
+~~~
 ### 4.5 费用（Fee）
 - 列表与创建：GET /api/fees/、POST /api/fees/
 - 详情、更新与删除：GET /api/fees/{id}/、PUT /api/fees/{id}/、PATCH /api/fees/{id}/、DELETE /api/fees/{id}/

@@ -16,8 +16,9 @@ class PropertyAdmin(admin.ModelAdmin):
 
 @admin.register(Contract)
 class ContractAdmin(admin.ModelAdmin):
-    list_display = ('id', 'tenant', 'property', 'start_date', 'end_date', 'status')
-    search_fields = ('id', 'tenant__email', 'property__house_number')
+    list_display = ('id', 'tenant', 'start_date', 'end_date', 'status')
+    search_fields = ('id', 'tenant__email')
+    filter_horizontal = ('properties',)  # 添加此行以支持多选界面
 
 @admin.register(Fee)
 class FeeAdmin(admin.ModelAdmin):

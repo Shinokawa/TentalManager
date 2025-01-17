@@ -1,9 +1,14 @@
+# rental_app/views.py
+
 from rest_framework import viewsets, permissions
 from rest_framework.decorators import action, api_view
 from rest_framework.response import Response
 from django.db.models import Sum
 from .models import Tenant, Property, Contract, Fee, Payment
-from .serializers import TenantSerializer, PropertySerializer, ContractSerializer, FeeSerializer, PaymentSerializer
+from .serializers import (
+    TenantSerializer, PropertySerializer,
+    ContractSerializer, FeeSerializer, PaymentSerializer
+)
 
 class TenantViewSet(viewsets.ModelViewSet):
     queryset = Tenant.objects.all()
@@ -16,17 +21,17 @@ class PropertyViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
 class ContractViewSet(viewsets.ModelViewSet):
-    queryset = Contract.objects.all()
+    queryset = Contract.objects.all().select_related('tenant').prefetch_related('properties')
     serializer_class = ContractSerializer
     permission_classes = [permissions.IsAuthenticated]
 
 class FeeViewSet(viewsets.ModelViewSet):
-    queryset = Fee.objects.all()
+    queryset = Fee.objects.all().select_related('contract')
     serializer_class = FeeSerializer
     permission_classes = [permissions.IsAuthenticated]
 
 class PaymentViewSet(viewsets.ModelViewSet):
-    queryset = Payment.objects.all()
+    queryset = Payment.objects.all().select_related('fee__contract')
     serializer_class = PaymentSerializer
     permission_classes = [permissions.IsAuthenticated]
 

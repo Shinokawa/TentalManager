@@ -1,6 +1,9 @@
 from django.urls import include, path
 from rest_framework import routers
-from .views import TenantViewSet, PropertyViewSet, ContractViewSet, FeeViewSet, PaymentViewSet, data_analysis
+from .views import (
+    TenantViewSet, PropertyViewSet, ContractViewSet,
+    FeeViewSet, PaymentViewSet, data_analysis
+)
 
 router = routers.DefaultRouter()
 router.register(r'tenants', TenantViewSet)
