@@ -137,7 +137,7 @@ class Contract(models.Model):
 - 字段：
 
   - tenant：外键，关联 Tenant 模型。
-  - property：外键，关联 Property 模型。
+  - properties：多对多关系，关联 Property 模型。
   - start_date：合同开始日期。
   - end_date：合同结束日期。
   - monthly_rent：月租金。
@@ -150,7 +150,36 @@ class Contract(models.Model):
   - current_receivable：当前应收金额。
   - current_outstanding：当前未结金额。
   - total_overdue：累计逾期金额。
+  - contract_file：合同文件。
+  - deposit_amount：保证金金额。
+  - management_fee：物业管理费。
+  - business_type：经营业态。
+  - rental_purpose：租赁用途。
+  - decoration_period：装修期（天）。
+  - rent_free_period：免租期（天）。
+  - utilities_payment：水电费支付方式。
+  - promotion_fee：推广费。
 
+创建合同示例：
+```
+POST /api/contracts/
+{
+    "tenant_id": 1,
+    "property_ids": [1, 2, 3],
+    "start_date": "2025-01-01",
+    "end_date": "2025-12-31",
+    "monthly_rent": "2000.00",
+    "yearly_rent": "24000.00",
+    "total_rent": "24000.00",
+    "rental_area": "120.50",
+    "rental_unit_price": "2000.00",
+    "rent_collection_time": "2025-01-01",
+    "status": "active",
+    "current_receivable": "2000.00",
+    "current_outstanding": "0.00",
+    "total_overdue": "0.00"
+}
+```
 ### 3.4 Fee（费用）
 ```python
 class Fee(models.Model):
@@ -242,6 +271,8 @@ class Payment(models.Model):
 ### 4.2 租户（Tenant）
 - 列表与创建：GET /api/tenants/、POST /api/tenants/
 - 详情、更新与删除：GET /api/tenants/{id}/、PUT /api/tenants/{id}/、PATCH /api/tenants/{id}/、DELETE /api/tenants/{id}/
+- 获取客户费用清单: GET /api/tenants/{d}/fees/
+- 发送费用通知: POST /api/tenants/{tenant_id}/send_notification/
 
 字段：
 - id：租户ID
@@ -253,6 +284,7 @@ class Payment(models.Model):
 ### 4.3 房产（Property）
 - 列表与创建：GET /api/properties/、POST /api/properties/
 - 详情、更新与删除：GET /api/properties/{id}/、PUT /api/properties/{id}/、PATCH /api/properties/{id}/、DELETE /api/properties/{id}/
+- 获取可租房源: GET /api/properties/available/
 
 字段：
 - id：房产ID
@@ -268,39 +300,51 @@ class Payment(models.Model):
 - 详情、更新与删除：GET /api/contracts/{id}/、PUT /api/contracts/{id}/、PATCH /api/contracts/{id}/、DELETE /api/contracts/{id}/
 
 字段：
-- id：合同ID
-- tenant：关联的租户（租户ID）
-- property：关联的房产（房产ID）
-- start_date：开始日期
-- end_date：结束日期
-- monthly_rent：月租金
-- yearly_rent：年租金
-- total_rent：总租金
-- rental_area：租赁面积
-- rental_unit_price：租赁单价
-- rent_collection_time：租金收取时间
-- status：合同状态
-- current_receivable：当前应收金额
-- current_outstanding：当前未结金额
-- total_overdue：累计逾期金额
+- tenant：外键，关联 Tenant 模型。
+- properties：多对多关系，关联 Property 模型。
+- start_date：合同开始日期。
+- end_date：合同结束日期。
+- monthly_rent：月租金。
+- yearly_rent：年租金。
+- total_rent：总租金。
+- rental_area：租赁面积。
+- rental_unit_price：租赁单价。
+- rent_collection_time：租金收取时间。
+- status：合同状态（有效、终止、过期）。
+- current_receivable：当前应收金额。
+- current_outstanding：当前未结金额。
+- total_overdue：累计逾期金额。
+- contract_file：合同文件。
+- deposit_amount：保证金金额。
+- management_fee：物业管理费。
+- business_type：经营业态。
+- rental_purpose：租赁用途。
+- decoration_period：装修期（天）。
+- rent_free_period：免租期（天）。
+- utilities_payment：水电费支付方式。
+- promotion_fee：推广费。
 创建合同事例
 ~~~
 POST /api/contracts/
 {
     "tenant_id": 1,
-    "property_ids": [1, 2, 3],
-    "start_date": "2025-01-01",
-    "end_date": "2025-12-31",
-    "monthly_rent": "2000.00",
-    "yearly_rent": "24000.00",
-    "total_rent": "24000.00",
-    "rental_area": "120.50",
-    "rental_unit_price": "2000.00",
-    "rent_collection_time": "2025-01-01",
-    "status": "active",
-    "current_receivable": "2000.00",
-    "current_outstanding": "0.00",
-    "total_overdue": "0.00"
+    "property_ids": [1, 2],
+    "start_date": "2024-03-01",
+    "end_date": "2025-02-28",
+    "monthly_rent": 2000.00,
+    "yearly_rent": 24000.00,
+    "total_rent": 24000.00,
+    "rental_area": 120.50,
+    "rental_unit_price": 16.60,
+    "rent_collection_time": "2024-03-01",
+    "deposit_amount": 4000.00,
+    "management_fee": 500.00,
+    "business_type": "零售",
+    "rental_purpose": "商铺经营",
+    "decoration_period": 30,
+    "rent_free_period": 15,
+    "utilities_payment": "按实际使用量收取",
+    "promotion_fee": 1000.00
 }
 ~~~
 ### 4.5 费用（Fee）
@@ -322,6 +366,9 @@ POST /api/contracts/
 ### 4.6 支付记录（Payment）
 - 列表与创建：GET /api/payments/、POST /api/payments/
 - 详情、更新与删除：GET /api/payments/{id}/、PUT /api/payments/{id}/、PATCH /api/payments/{id}/、DELETE /api/payments/{id}/
+- 获取应收费用列表: GET /api/payments/receivables/
+- 获取欠费列表: GET /api/payments/payables/
+- 打印收据: GET /api/payments/{payment_id}/print_receipt/
 
 字段：
 - id：支付ID
@@ -353,6 +400,58 @@ POST /api/contracts/
     }
 }
 ```
+### 4.8 API总结
+#### 4.8.1 主要 ViewSet API endpoints (通过 DefaultRouter 自动生成)
+每个 ViewSet 都自动生成以下 CRUD 操作：
+
+1. 租户(Tenants) API - /tenants/
+- GET /tenants/ - 列出所有租户
+- POST /tenants/ - 创建新租户
+- GET /tenants/{id}/ - 获取特定租户
+- PUT/PATCH /tenants/{id}/ - 更新租户
+- DELETE /tenants/{id}/ - 删除租户
+
+2. 物业(Properties) API - /properties/
+- GET /properties/ - 列出所有物业
+- POST /properties/ - 创建新物业
+- GET /properties/{id}/ - 获取特定物业
+- PUT/PATCH /properties/{id}/ - 更新物业
+- DELETE /properties/{id}/ - 删除物业
+
+3. 合同(Contracts) API - /contracts/
+- GET /contracts/ - 列出所有合同
+- POST /contracts/ - 创建新合同
+- GET /contracts/{id}/ - 获取特定合同
+- PUT/PATCH /contracts/{id}/ - 更新合同
+- DELETE /contracts/{id}/ - 删除合同
+
+4. 费用(Fees) API - /fees/
+- GET /fees/ - 列出所有费用
+- POST /fees/ - 创建新费用
+- GET /fees/{id}/ - 获取特定费用
+- PUT/PATCH /fees/{id}/ - 更新费用
+- DELETE /fees/{id}/ - 删除费用
+
+5. 支付(Payments) API - /payments/
+- GET /payments/ - 列出所有支付
+- POST /payments/ - 创建新支付
+- GET /payments/{id}/ - 获取特定支付
+- PUT/PATCH /payments/{id}/ - 更新支付
+- DELETE /payments/{id}/ - 删除支付
+
+#### 4.8.2 自定义 Action endpoints
+
+支付相关的额外端点：
+- GET /payments/receivables/ - 获取所有应收款项
+- GET /payments/payables/ - 获取所有逾期未付款项
+- GET /payments/{id}/print_receipt/ - 打印特定支付的收据
+
+#### 4.8.3 数据分析 endpoint
+
+- GET /data-analysis/ - 获取系统综合数据分析，包括:
+  - 财务数据 (应收金额、已收金额、逾期金额、收款率)
+  - 物业数据 (总面积、已租面积、可用物业数量、出租率)
+
 ## 5. 认证与权限
 
 项目使用 Django REST Framework (DRF) 提供的认证机制。默认情况下，所有 API 端点都需要经过认证才能访问。

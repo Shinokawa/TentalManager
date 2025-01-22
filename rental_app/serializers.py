@@ -38,6 +38,12 @@ class ContractSerializer(serializers.ModelSerializer):
         properties = validated_data.pop('properties')
         contract = Contract.objects.create(tenant=tenant, **validated_data)
         contract.properties.set(properties)
+        
+        # 更新房源状态
+        for property in properties:
+            property.rental_status = 'rented'
+            property.save()
+        
         return contract
 
     def update(self, instance, validated_data):
@@ -47,12 +53,24 @@ class ContractSerializer(serializers.ModelSerializer):
         if tenant is not None:
             instance.tenant = tenant
 
+        # 如果更新了房源，需要处理旧房源和新房源的状态
+        if properties is not None:
+            # 将原有房源状态改为可用
+            for property in instance.properties.all():
+                property.rental_status = 'available'
+                property.save()
+            
+            # 设置新的房源关系
+            instance.properties.set(properties)
+            
+            # 将新房源状态改为已租赁
+            for property in properties:
+                property.rental_status = 'rented'
+                property.save()
+
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
-
-        if properties is not None:
-            instance.properties.set(properties)
 
         return instance
 

@@ -91,11 +91,7 @@ class Contract(models.Model):
         super().save(*args, **kwargs)
         
         if is_new:
-            # 更新所有相关房产状态
-            for property in self.properties.all():
-                property.update_rental_status('rented')
-            
-            # 创建初始费用
+            # 只创建初始费用，房源状态已在序列化器中处理
             self.create_initial_fees()
 
     def create_initial_fees(self):

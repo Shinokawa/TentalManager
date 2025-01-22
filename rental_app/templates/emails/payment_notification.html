@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+</head>
+<body>
+    <h2>缴费通知</h2>
+    <p>尊敬的 {{ tenant.first_name }} {{ tenant.last_name }}：</p>
+    <p>您有一笔待缴费用：</p>
+    <ul>
+        <li>费用类型：{{ fee.get_category_display }}</li>
+        <li>金额：¥{{ fee.amount }}</li>
+        <li>期数：{{ fee.term }}</li>
+    </ul>
+    <p>请及时缴纳以避免逾期。</p>
+</body>
+</html>

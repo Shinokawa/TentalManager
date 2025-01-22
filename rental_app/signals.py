@@ -1,6 +1,6 @@
-from django.db.models.signals import post_save, post_delete, pre_delete
+from django.db.models.signals import post_save, post_delete, pre_delete, m2m_changed
 from django.dispatch import receiver
-from .models import Contract, Fee, Payment
+from .models import Contract, Fee, Payment, Property
 from django.db.models import Sum
 
 @receiver(post_save, sender=Contract)
@@ -64,3 +64,13 @@ def update_property_status(sender, instance, **kwargs):
     # 合同删除时更新房产状态
     for property in instance.properties.all():
         property.update_rental_status('available')
+
+@receiver(m2m_changed, sender=Contract.properties.through)
+def handle_property_changes(sender, instance, action, reverse, model, pk_set, **kwargs):
+    """处理合同和房源多对多关系变化"""
+    if action == "post_remove":
+        # 当房源从合同中移除时，将状态改为可用
+        Property.objects.filter(id__in=pk_set).update(rental_status='available')
+    elif action == "post_add":
+        # 当新房源添加到合同时，将状态改为已租赁
+        Property.objects.filter(id__in=pk_set).update(rental_status='rented')
