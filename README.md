@@ -445,6 +445,9 @@ POST /api/contracts/
 - GET /payments/receivables/ - 获取所有应收款项
 - GET /payments/payables/ - 获取所有逾期未付款项
 - GET /payments/{id}/print_receipt/ - 打印特定支付的收据
+- GET /api/tenants/{d}/fees/ - 获取客户费用清单
+- POST /api/tenants/{tenant_id}/send_notification/ - 发送费用通知
+- GET /api/properties/available/ - 获取可租房源
 
 #### 4.8.3 数据分析 endpoint
 

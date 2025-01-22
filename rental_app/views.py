@@ -12,16 +12,89 @@ from .serializers import (
     TenantSerializer, PropertySerializer,
     ContractSerializer, FeeSerializer, PaymentSerializer
 )
+from django.core.mail import send_mail
+from django.conf import settings
 
 class TenantViewSet(viewsets.ModelViewSet):
     queryset = Tenant.objects.all()
     serializer_class = TenantSerializer
     permission_classes = [permissions.IsAuthenticated]
 
+    @action(detail=True, methods=['get'])
+    def fees(self, request, pk=None):
+        """获取指定租户的所有费用清单"""
+        tenant = self.get_object()
+        fees = Fee.objects.filter(
+            contract__tenant=tenant
+        ).select_related(
+            'contract'
+        ).order_by(
+            '-contract__start_date', 
+            'category'
+        )
+        
+        serializer = FeeSerializer(fees, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['post'])
+    def send_notification(self, request, pk=None):
+        """向租户发送未缴费用通知"""
+        tenant = self.get_object()
+        unpaid_fees = Fee.objects.filter(
+            contract__tenant=tenant,
+            is_collected=False
+        )
+        
+        if not unpaid_fees.exists():
+            return Response({
+                "message": "该租户没有未缴费用"
+            }, status=400)
+
+        # 计算总未付金额
+        total_amount = sum(fee.amount for fee in unpaid_fees)
+        
+        # 发送邮件通知
+        subject = '费用缴纳提醒'
+        message = f"""
+        尊敬的{tenant.first_name} {tenant.last_name}：
+        
+        您目前有 {unpaid_fees.count()} 笔费用尚未支付，总金额：¥{total_amount}。
+        请及时缴纳以下费用：
+        
+        {chr(10).join([f"- {fee.category}: ¥{fee.amount} ({fee.term})" for fee in unpaid_fees])}
+        """
+        
+        try:
+            send_mail(
+                subject=subject,
+                message=message,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[tenant.email],
+                fail_silently=False,
+            )
+            
+            return Response({
+                "message": f"已成功向租户 {tenant.first_name} {tenant.last_name} 发送费用通知",
+                "unpaid_fees_count": unpaid_fees.count(),
+                "total_amount": total_amount
+            })
+            
+        except Exception as e:
+            return Response({
+                "message": "发送通知失败",
+                "error": str(e)
+            }, status=500)
+
 class PropertyViewSet(viewsets.ModelViewSet):
     queryset = Property.objects.all()
     serializer_class = PropertySerializer
     permission_classes = [permissions.IsAuthenticated]
+
+    @action(detail=False, methods=['get'])
+    def available(self, request):
+        available_properties = Property.objects.filter(rental_status='available')
+        serializer = self.get_serializer(available_properties, many=True)
+        return Response(serializer.data)
 
 class ContractViewSet(viewsets.ModelViewSet):
     queryset = Contract.objects.all().select_related('tenant').prefetch_related('properties')
