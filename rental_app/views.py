@@ -5,9 +5,12 @@ from rest_framework.decorators import action, api_view
 from rest_framework.response import Response
 from django.db.models import Sum
 from django.core.files import File  # 添加这行导入
-from django.http import FileResponse
+from django.http import FileResponse, HttpResponseServerError
 import os
 import logging
+import tempfile
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import letter
 from .models import Tenant, Property, Contract, Fee, Payment
 from .serializers import (
     TenantSerializer, PropertySerializer,
@@ -16,6 +19,7 @@ from .serializers import (
 from django.core.mail import send_mail
 from django.conf import settings
 from rest_framework import status  # 添加这行导入
+from rest_framework.exceptions import ValidationError  # 添加这行导入
 
 logger = logging.getLogger(__name__)
 
@@ -115,6 +119,13 @@ class PaymentViewSet(viewsets.ModelViewSet):
     serializer_class = PaymentSerializer
     permission_classes = [permissions.IsAuthenticated]
 
+    def get_queryset(self):
+        queryset = Payment.objects.all().select_related('fee__contract')
+        fee_id = self.request.query_params.get('fee', None)
+        if fee_id is not None:
+            queryset = queryset.filter(fee_id=fee_id)
+        return queryset
+
     @action(detail=False, methods=['get'])
     def receivables(self, request):
         receivables = Fee.objects.filter(is_collected=False)
@@ -129,24 +140,59 @@ class PaymentViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['get'])
     def print_receipt(self, request, pk=None):
-        payment = self.get_object()
-        pdf_path = payment.generate_receipt()
-        
         try:
-            response = FileResponse(
-                open(pdf_path, 'rb'),
-                content_type='application/pdf'
-            )
-            response['Content-Disposition'] = f'attachment; filename="receipt_{payment.id}.pdf"'
-            return response
-        finally:
-            # 清理临时文件
-            os.unlink(pdf_path)
+            payment = self.get_object()
+            
+            # 创建临时文件
+            temp_dir = tempfile.gettempdir()
+            pdf_path = os.path.join(temp_dir, f'receipt_{payment.id}.pdf')
+            
+            # 生成PDF
+            c = canvas.Canvas(pdf_path, pagesize=letter)
+            c.setFont("Helvetica", 12)
+            
+            # 添加收据内容
+            c.drawString(100, 800, f"收据编号: {payment.id}")
+            c.drawString(100, 780, f"日期: {payment.payment_date.strftime('%Y-%m-%d')}")
+            c.drawString(100, 760, f"支付方式: {payment.get_payment_method_display()}")
+            c.drawString(100, 740, f"金额: ¥{payment.amount}")
+            
+            if payment.fee and payment.fee.contract:
+                tenant = payment.fee.contract.tenant
+                c.drawString(100, 720, f"租户: {tenant.first_name} {tenant.last_name}")
+                c.drawString(100, 700, f"费用类型: {payment.fee.get_category_display()}")
+                c.drawString(100, 680, f"所属期限: {payment.fee.term}")
+            
+            c.save()
+            
+            # 返回生成的PDF
+            try:
+                response = FileResponse(
+                    open(pdf_path, 'rb'),
+                    content_type='application/pdf'
+                )
+                response['Content-Disposition'] = f'attachment; filename="receipt_{payment.id}.pdf"'
+                return response
+            finally:
+                # 确保文件存在才删除
+                if os.path.exists(pdf_path):
+                    os.unlink(pdf_path)
+                    
+        except Exception as e:
+            return HttpResponseServerError(f"生成收据失败: {str(e)}")
 
     def create(self, request, *args, **kwargs):
         logger.info(f"Payment request data: {request.data}")
         serializer = self.get_serializer(data=request.data)
         
+        # 检查费用是否已支付
+        fee_id = request.data.get('fee_id')
+        if Payment.objects.filter(fee_id=fee_id).exists():
+            return Response(
+                {'detail': '该费用已支付，请勿重复支付！'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
         if not serializer.is_valid():
             logger.error(f"Payment validation errors: {serializer.errors}")
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
