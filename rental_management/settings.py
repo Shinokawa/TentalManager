@@ -12,6 +12,7 @@ ALLOWED_HOSTS = []
 
 # 应用程序
 INSTALLED_APPS = [
+    'corsheaders',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -19,12 +20,14 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'rest_framework_simplejwt',  # 添加这一行
     'django_celery_beat',
     'rental_app',
 ]
 
 # 中间件
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -102,13 +105,20 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # DRF配置
 REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
     ],
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.SessionAuthentication',
-        'rest_framework.authentication.BasicAuthentication',
-    ],
+}
+
+from datetime import timedelta
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(hours=1),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
 }
 
 # Celery配置
@@ -133,3 +143,9 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'your_email@example.com'  # 替换为您的邮箱
 EMAIL_HOST_PASSWORD = 'your_email_password'  # 替换为您的邮箱密码或应用专用密码
 DEFAULT_FROM_EMAIL = 'your_email@example.com'
+
+
+
+CORS_ALLOWED_ORIGINS = [
+    'http://localhost:5173',  # 或者你的前端地址
+]

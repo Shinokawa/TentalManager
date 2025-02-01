@@ -3,6 +3,10 @@ from django.db import models
 from django.db.models import Sum
 from django.core.validators import MinValueValidator
 from decimal import Decimal
+import tempfile
+import logging
+
+logger = logging.getLogger(__name__)
 
 class Tenant(models.Model):
     email = models.EmailField(unique=True)
@@ -179,19 +183,29 @@ class Payment(models.Model):
         return f"Payment {self.id} - {self.amount}"
     
     def generate_receipt(self):
-        from django.template.loader import render_to_string
-        from weasyprint import HTML
-        import tempfile
-        
-        # 生成收据HTML
-        context = {
-            'payment': self,
-            'contract': self.fee.contract,
-            'tenant': self.fee.contract.tenant
-        }
-        html_string = render_to_string('receipts/payment_receipt.html', context)
-        
-        # 转换为PDF
-        with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as pdf_file:
-            HTML(string=html_string).write_pdf(pdf_file.name)
-            return pdf_file.name
+        """生成收据并返回文件路径"""
+        try:
+            import weasyprint
+            from django.template.loader import render_to_string
+            from django.conf import settings
+            
+            # 创建临时文件
+            with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as tmp:
+                # 渲染收据HTML
+                html_string = render_to_string('receipts/payment_receipt.html', {
+                    'payment': self,
+                    'fee': self.fee,
+                    'contract': self.fee.contract,
+                    'tenant': self.fee.contract.tenant,
+                })
+                
+                # 生成PDF
+                weasyprint.HTML(string=html_string).write_pdf(tmp.name)
+                return tmp.name
+                
+        except ImportError:
+            logger.error("WeasyPrint 或其依赖项未正确安装")
+            return None
+        except Exception as e:
+            logger.error(f"生成收据时发生错误: {str(e)}")
+            return None

@@ -209,7 +209,7 @@ class Fee(models.Model):
     term = models.CharField(max_length=50)  # 例如 '2025-01'
     is_collected = models.BooleanField(default=False)
     overdue_status = models.CharField(max_length=20, choices=OVERDUE_STATUS_CHOICES, default='on_time')
-    payment_method = models.CharField(max_length=20, choices=PAYMENT_METHOD_CHOICES, blank=True, null=True)
+    payment_method = models.CharField(maxlength=20, choices=PAYMENT_METHOD_CHOICES, blank=True, null=True)
     receipt = models.FileField(upload_to='receipts/', blank=True, null=True)
     bank_slip = models.FileField(upload_to='bank_slips/', blank=True, null=True)
 
@@ -461,6 +461,177 @@ POST /api/contracts/
 
 ### 5.1 认证方式
 - Token-Based Authentication：建议使用 DRF 的 Token Authentication 或 JWT（JSON Web Token）进行认证，以便前端通过令牌与后端进行通信。
+
+### 5.1 JWT认证流程
+
+1. **获取令牌**
+```http
+POST /api/token/
+Content-Type: application/json
+
+{
+    "username": "your_username",
+    "password": "your_password"
+}
+```
+
+成功响应：
+```json
+{
+    "access": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
+    "refresh": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+}
+```
+
+2. **使用访问令牌**
+在所有API请求的Header中添加：
+```http
+Authorization: Bearer <access_token>
+```
+
+3. **刷新令牌**
+当access token过期时，使用refresh token获取新的access token：
+```http
+POST /api/token/refresh/
+Content-Type: application/json
+
+{
+    "refresh": "your_refresh_token"
+}
+```
+
+成功响应：
+```json
+{
+    "access": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+}
+```
+
+### 5.2 前端实现示例
+
+```javascript
+// API配置
+const API_URL = 'http://localhost:8000';
+
+// 登录函数
+async function login(username, password) {
+    try {
+        const response = await fetch(`${API_URL}/api/token/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                username,
+                password,
+            }),
+        });
+
+        if (!response.ok) {
+            throw new Error('Login failed');
+        }
+
+        const data = await response.json();
+        // 存储令牌
+        localStorage.setItem('access_token', data.access);
+        localStorage.setItem('refresh_token', data.refresh);
+        
+        return data;
+    } catch (error) {
+        console.error('Login error:', error);
+        throw error;
+    }
+}
+
+// API请求拦截器示例
+async function apiRequest(url, options = {}) {
+    const accessToken = localStorage.getItem('access_token');
+    
+    // 添加认证头
+    options.headers = {
+        ...options.headers,
+        'Authorization': `Bearer ${accessToken}`,
+    };
+
+    try {
+        const response = await fetch(`${API_URL}${url}`, options);
+        
+        if (response.status === 401) {
+            // 令牌过期，尝试刷新
+            const newToken = await refreshToken();
+            if (newToken) {
+                // 使用新令牌重试请求
+                options.headers['Authorization'] = `Bearer ${newToken}`;
+                return await fetch(`${API_URL}${url}`, options);
+            }
+        }
+        
+        return response;
+    } catch (error) {
+        console.error('API request error:', error);
+        throw error;
+    }
+}
+
+// 令牌刷新函数
+async function refreshToken() {
+    const refreshToken = localStorage.getItem('refresh_token');
+    
+    try {
+        const response = await fetch(`${API_URL}/api/token/refresh/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                refresh: refreshToken,
+            }),
+        });
+
+        if (!response.ok) {
+            throw new Error('Token refresh failed');
+        }
+
+        const data = await response.json();
+        localStorage.setItem('access_token', data.access);
+        return data.access;
+    } catch (error) {
+        // 刷新失败，清除令牌并重定向到登录页
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        window.location.href = '/login';
+        return null;
+    }
+}
+
+// 使用示例
+async function fetchUserData() {
+    try {
+        const response = await apiRequest('/api/user/profile/');
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error('Failed to fetch user data:', error);
+        throw error;
+    }
+}
+```
+
+### 5.3 注意事项
+
+1. **令牌存储**
+   - 将令牌存储在 localStorage 中（如上示例）或更安全的方式（如 HttpOnly Cookie）
+   - 注意在用户登出时清除存储的令牌
+
+2. **令牌刷新策略**
+   - access token 有效期为1小时
+   - refresh token 有效期为7天
+   - 建议在收到401响应时自动尝试刷新令牌
+
+3. **安全建议**
+   - 使用HTTPS传输
+   - 定期刷新令牌
+   - 在用户登出时使令牌失效
 
 ### 5.2 权限设置
 - IsAuthenticated：仅允许已认证用户访问 API 端点。

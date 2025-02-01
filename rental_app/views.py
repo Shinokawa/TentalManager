@@ -7,6 +7,7 @@ from django.db.models import Sum
 from django.core.files import File  # 添加这行导入
 from django.http import FileResponse
 import os
+import logging
 from .models import Tenant, Property, Contract, Fee, Payment
 from .serializers import (
     TenantSerializer, PropertySerializer,
@@ -14,6 +15,9 @@ from .serializers import (
 )
 from django.core.mail import send_mail
 from django.conf import settings
+from rest_framework import status  # 添加这行导入
+
+logger = logging.getLogger(__name__)
 
 class TenantViewSet(viewsets.ModelViewSet):
     queryset = Tenant.objects.all()
@@ -139,6 +143,17 @@ class PaymentViewSet(viewsets.ModelViewSet):
             # 清理临时文件
             os.unlink(pdf_path)
 
+    def create(self, request, *args, **kwargs):
+        logger.info(f"Payment request data: {request.data}")
+        serializer = self.get_serializer(data=request.data)
+        
+        if not serializer.is_valid():
+            logger.error(f"Payment validation errors: {serializer.errors}")
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            
+        self.perform_create(serializer)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
     def perform_create(self, serializer):
         payment = serializer.save()
         fee = payment.fee
@@ -150,23 +165,31 @@ class PaymentViewSet(viewsets.ModelViewSet):
         
         # 更新合同相关金额
         contract = fee.contract
-        contract.current_receivable = contract.fees.filter(is_collected=False).aggregate(total=Sum('amount'))['total'] or 0
-        contract.current_outstanding = contract.fees.filter(is_collected=False, overdue_status='overdue').aggregate(total=Sum('amount'))['total'] or 0
-        contract.total_overdue = contract.fees.filter(overdue_status='overdue').aggregate(total=Sum('amount'))['total'] or 0
+        contract.current_receivable = contract.fees.filter(
+            is_collected=False).aggregate(total=Sum('amount'))['total'] or 0
+        contract.current_outstanding = contract.fees.filter(
+            is_collected=False, overdue_status='overdue').aggregate(total=Sum('amount'))['total'] or 0
+        contract.total_overdue = contract.fees.filter(
+            overdue_status='overdue').aggregate(total=Sum('amount'))['total'] or 0
         
         # 保存更改
         fee.save()
         contract.save()
         
-        # 自动生成并保存收据
-        pdf_path = payment.generate_receipt()
-        with open(pdf_path, 'rb') as pdf:
-            payment.receipt.save(
-                f'receipt_{payment.id}.pdf',
-                File(pdf),
-                save=True
-            )
-        os.unlink(pdf_path)  # 清理临时文件
+        # 尝试生成收据
+        try:
+            pdf_path = payment.generate_receipt()
+            if pdf_path:
+                with open(pdf_path, 'rb') as pdf:
+                    payment.receipt.save(
+                        f'receipt_{payment.id}.pdf',
+                        File(pdf),
+                        save=True
+                    )
+                os.unlink(pdf_path)  # 清理临时文件
+        except Exception as e:
+            logger.error(f"保存收据时发生错误: {str(e)}")
+            # 继续执行，不影响支付流程
 
 @api_view(['GET'])
 def data_analysis(request):

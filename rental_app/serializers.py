@@ -3,6 +3,7 @@
 from rest_framework import serializers
 from rest_framework.reverse import reverse
 from .models import Tenant, Property, Contract, Fee, Payment
+from django.db import models
 
 class TenantSerializer(serializers.ModelSerializer):
     class Meta:
@@ -100,6 +101,24 @@ class PaymentSerializer(serializers.ModelSerializer):
         model = Payment
         fields = ['id', 'fee', 'fee_id', 'payment_date', 'amount', 
                  'payment_method', 'receipt', 'receipt_url', 'print_receipt_url']
+
+    def validate(self, data):
+        """验证支付金额"""
+        fee = data.get('fee')
+        amount = data.get('amount')
+        
+        if fee and amount:
+            if amount <= 0:
+                raise serializers.ValidationError({"amount": "支付金额必须大于0"})
+            # 检查剩余应付金额
+            total_paid = Payment.objects.filter(fee=fee).aggregate(
+                total=models.Sum('amount'))['total'] or 0
+            remaining = fee.amount - total_paid
+            if amount > remaining:
+                raise serializers.ValidationError(
+                    {"amount": f"支付金额不能超过剩余应付金额 {remaining}"}
+                )
+        return data
 
     def get_receipt_url(self, obj):
         if obj.receipt:
